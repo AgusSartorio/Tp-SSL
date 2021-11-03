@@ -13,13 +13,10 @@
 
     extern int yylineno;
 
-    char* tipoAuxiliar  = "";
-    char* tipoAuxiliar1 = "";
-    char* tipoAuxiliar2 = "";
-    char* identificadorAuxiliar = ""; 
-    int validacionBinaria = 0;
+    
 
 %}
+
 
 %union {
     char* cadena;
@@ -27,34 +24,30 @@
     float real;
 }
 
-/* %token <tipo> LEXEMA */
 %token <cadena> IDENTIFICADOR
 
-// OPERADORES
-%token <cadena> OPERADOR_ASIGNACION                 // = *= /= %= += *= <<= >>= &= ^= |=
-%token <cadena> OPERADOR_O_LOGICO                   // ||
-%token <cadena> OPERADOR_Y_LOGICO                   // &&
-%token <cadena> OPERADOR_O_INCLUSIVO                // |
-%token <cadena> OPERADOR_O_EXCLUSIVO                // ^
-%token <cadena> OPERADOR_IGUALDAD                   // == !=
-%token <cadena> OPERADOR_RELACIONAL                 // < > <= >=
-%token <cadena> OPERADOR_CORRIMIENTO                // << >>
-%token <cadena> OPERADOR_MULTIPLICATIVO             // * 
-%token <cadena> OPERADOR_INCREMENTO                 // ++ --
-%token <cadena> OPERADOR_SIZEOF                     // sizeof
 
-// CONSTANTES
-%token <cadena> CONSTANTE_CADENA                    // "*"
-%token <entero> CONSTANTE_DECIMAL                   // [1-9][0-9]*
-%token <entero> CONSTANTE_OCTAL                     // 0[0-7]*     
-%token <entero> CONSTANTE_HEXADECIMAL               // 0[xX][a-fA-F0-9]+
-%token <real>   CONSTANTE_REAL                      //  
-%token <entero> CONSTANTE_CARACTER                  // 
+%token <cadena> OP_ASIGNACION                
+%token <cadena> OP_O_LOGICO                   
+%token <cadena> OP_Y_LOGICO                  
+%token <cadena> OP_O_INCLUSIVO                
+%token <cadena> OP_O_EXCLUSIVO               
+%token <cadena> OP_IGUALDAD                  
+%token <cadena> OP_RELACIONAL                
+%token <cadena> OP_DIVISION 
+%token <cadena> OP_PORCENTAJE 
+%token <cadena> OP_INCREMENTO                
+%token <cadena> SIZEOF  
 
-// DECLARADORES
-%token <cadena> TIPO_DATO                           // void char short int long float double signed unsigned
+%token <cadena> CONSTANTE_CADENA                    
+%token <entero> CONSTANTE_DECIMAL                   
+%token <entero> CONSTANTE_OCTAL                         
+%token <entero> CONSTANTE_HEXADECIMAL               
+%token <real>   CONSTANTE_REAL                        
+%token <entero> CONSTANTE_CARACTER                   
 
-// PALABRAS RESERVADAS
+%token <cadena> TIPO_DATO 
+
 %token <cadena> IF
 %token <cadena> ELSE
 %token <cadena> SWITCH
@@ -66,75 +59,176 @@
 %token <cadena> CONTINUE
 %token <cadena> BREAK
 %token <cadena> RETURN
-%token <cadena> GOTO
 
-/* %type <tipo>   */ 
-%type <cadena> expresionSufijo
+%token <cadena> STRUCT
 
-%type <cadena> declaracionVariable
-%type <cadena> declarador
-%type <cadena> decla
-%type <cadena> puntero
-%type <cadena> declaradorDirecto
-%type <cadena> expresionPrimaria
 
-%type <cadena> constante
+%% /* A continuacion las reglas gramaticales y las acciones */
 
-%%
-input: /* */
-    | input line
-    ;
+input:    /* vacio */
+        | input line
+;
 
 line: declaracion '\n'            
     | sentencia '\n'        
-    | error '\n'    { printf("\n***Error sintactico - Linea %i: %s***", yylineno, $<cadena>1); }
-    | error ';'     { printf("\n***Error sintactico - Linea %i: %s***", yylineno, $<cadena>1); }  
+    | error caracterDeCorte   {ver como implementar aca el cod C  }  
     ;
 
-/* **************************************** EXPRESIONES **************************************** */
+/*me parecio mejor ponerlo asi con un caracter de corte para variar, igual discutirlo */
+caracterDeCorte: ';'
+                |'\n'
+;
+
+
+/* -------------------------------------------------- SENTENCIAS -------------------------------------------------- */ 
+
+
+sentencia:  sentenciaExpresion      
+          | sentenciaCompuesta      
+          | sentenciaSeleccion    
+          | sentenciaIteracion    
+          | sentenciaEtiquetada     
+          | sentenciaSalto         
+;
+
+sentenciaExpresion: /* vacio */ ';'                                         { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION: VACIA", yylineno);   }
+                    | expresion ';'                                         { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION", yylineno);   }
+;
+
+
+/*aca en vez de poner listaDeDeclaraciones  y listaDeSentencias dentor de las llaves como hizo martin, se lo derive dentro del interiorSentenciaCompuesta */
+sentenciaCompuesta:       '{' interiorSentenciaCompuesta '}'                { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION: COMPUESTA", yylineno); }
+;
+
+interiorSentenciaCompuesta:        /* vacio */                              {printf("Se encontro una SENTENCIA COMPUESTA VACIA\n");}
+                                | listaDeDeclaraciones                      
+                                | listaDeSentencias                         
+                                | listaDeDeclaraciones listaDeSentencias    
+;
+
+listaDeDeclaraciones:   declaracion
+                      | listaDeDeclaraciones declaracion 
+;
+
+listaDeSentencias:    sentencia
+                    | listaDeSentencias sentencia
+;
+
+sentenciaSeleccion: IF '(' expresion ')' sentencia                  { printf("\nLinea %i Se encontro una SENTENCIA-SELECCION:  IF", yylineno);    }    
+                    | IF '(' expresion ')' sentencia ELSE sentencia { printf("\nLinea %i Se encontro una SENTENCIA-SELECCION:  IF/ELSE", yylineno);    } 
+                    | SWITCH '(' expresion ')' sentencia            { printf("\nLinea %i Se encontro una SENTENCIA-SELECCION:  SWITCH ", yylineno);    }
+;
+
+sentenciaIteracion: WHILE '(' expresion ')' sentencia                               { printf("\nLinea %i - SENTENCIA - ITERACION:  WHILE   ", yylineno);   } 
+                    | DO sentencia WHILE '(' expresion ')' ';'                      { printf("\nLinea %i Se encontro una SENTENCIA-ITERACION:  DO/WHILE", yylineno);   } 
+                    | FOR '(' expresion_';' expresion_ ';' expresion_ ')' sentencia { printf("\nLinea %i Se encontro una SENTENCIA-ITERACION:  FOR     ", yylineno);   }
+;
+
+sentenciaEtiquetada: CASE expresionConstante ':' sentencia 
+                    | DEFAULT ':' sentencia 
+/* saque esta linea donde estaba el IDENTIFICADOR porque creo q lo usa para el GOTO de la sentenciasalto pero como VOLAMOS el goto del FLEX no hace falta */ 
+;
+
+sentenciaSalto: CONTINUE ';'    { printf("\nLinea %i Se encontro la SENTENCIA-SALTO:  CONTINUE", yylineno);   }
+    | BREAK ';'                 { printf("\nLinea %i Se encontro la SENTENCIA-SALTO:  BREAK   ", yylineno);   } 
+    | RETURN expresion ';'      { printf("\nLinea %i Se encontro la SENTENCIA-SALTO:  RETURN  ", yylineno);   } 
+/* VOLE EL GOTO IDENTIFICADOR */
+;
+
+
+/* -------------------------------------------------- DECLARACIONES -------------------------------------------------- */ 
+
+/*dsps discutir las declaraciones*/
+
+declaracion: declaracionVariable
+            | declaracionFuncion
+;
+
+/*DECLARACION VARIABLES*/
+
+declaracionVariable: TIPO_DATO  declarador  ';' { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = agregadorDeclaradores(tipoAuxiliar); pushSimboloSinRepetir(identificadorAuxiliar, tipoAuxiliar, 0);} 
+    ;
+
+declarador: IDENTIFICADOR                   
+    | IDENTIFICADOR '=' inicializador
+    ;
+
+inicializador: expresionAsignacion
+    | '{' listaInicializadores '}'
+    | '{'listaInicializadores ',' listaInicializadores '}'
+    ;
+
+listaInicializadores: inicializador
+    | listaInicializadores ',' inicializador  
+    ;
+
+
+/*DECLARACION FUNCIONES*/
+
+declaracionFuncion: TIPO_DATO  IDENTIFICADOR parametros final  { pushSimboloSinRepetir($<cadena>2, $<cadena>1, 1);  pushParametros($<cadena>2); }
+;
+
+parametros: '(' listaDeParametros ')'
+            | '(' ')'
+;
+
+listaDeParametros:   parametro                          
+                    | listaDeParametros ',' parametro
+;
+
+parametro:  TIPO_DATO
+            | TIPO_DATO IDENTIFICADOR  /*esto seria el decla directo de martin */
+
+final:  ';'                                           
+         | sentenciaCompuesta   {completar}             
+         | '{' error '}'        {completar}              
+         | error                {completar} 
+;
+
+
+/* -------------------------------------------------- EXPRESIONES -------------------------------------------------- */
+
 expresion: expresionAsignacion 
     | expresion ',' expresionAsignacion
-    ;
+;
 
 expresionAsignacion: expresionCondicional                       
     | expresionUnaria '=' expresionAsignacion 
-    | expresionUnaria OPERADOR_ASIGNACION expresionAsignacion 
-    ;
+    | expresionUnaria OP_ASIGNACION expresionAsignacion 
+;
 
 expresionCondicional: expresionOLogico 
     | expresionOLogico '?' expresion ':' expresionCondicional 
-    ;
+;
 
 expresionOLogico: expresionYLogico 
-    | expresionOLogico OPERADOR_O_LOGICO expresionYLogico 
-    ;
+    | expresionOLogico OP_O_LOGICO expresionYLogico 
+;
 
 expresionYLogico: expresionOInclusivo 
-    | expresionYLogico OPERADOR_Y_LOGICO expresionOInclusivo 
-    ;
+    | expresionYLogico OP_Y_LOGICO expresionOInclusivo 
+;
 
-expresionOInclusivo: expresionOExcluyente 
-    | expresionOInclusivo OPERADOR_O_INCLUSIVO expresionOExcluyente 
-    ;
-
-expresionOExcluyente: expresionY 
-    | expresionOExcluyente OPERADOR_O_EXCLUSIVO expresionY 
-    ;
+expresionOInclusivo: expresionY
+    | expresionOInclusivo OP_O_INCLUSIVO expresionY  
+;
 
 expresionY: expresionIgualdad 
     | expresionY '&' expresionIgualdad 
     ;
 
 expresionIgualdad: expresionRelacional 
-    | expresionIgualdad OPERADOR_IGUALDAD expresionRelacional 
+    | expresionIgualdad OP_IGUALDAD expresionRelacional 
     ;
 
+/* -------------------HASTA ACA OKKK. LO Q SIGUE SOLO ES COPYPASTE FALTA ARREGLAR------------------------------------------- */
+
 expresionRelacional: expresionCorrimiento 
-    | expresionRelacional OPERADOR_RELACIONAL expresionCorrimiento 
+    | expresionRelacional OP_RELACIONAL expresionCorrimiento 
 ;
 
 expresionCorrimiento: expresionAditiva 
-    | expresionCorrimiento OPERADOR_CORRIMIENTO expresionAditiva 
+    | expresionCorrimiento OP_CORRIMIENTO expresionAditiva 
     ;
 
 expresionAditiva: expresionMultiplicativa 
@@ -191,154 +285,3 @@ constante: CONSTANTE_DECIMAL   { (validacionBinaria == 0) ? (tipoAuxiliar1 = "in
     | CONSTANTE_REAL           { (validacionBinaria == 0) ? (tipoAuxiliar1 = "float") : (tipoAuxiliar2 = "float"); validacionBinaria = 1; }  
     | CONSTANTE_CARACTER       { (validacionBinaria == 0) ? (tipoAuxiliar1 = "char" ) : (tipoAuxiliar2 = "char" ); validacionBinaria = 1; }
     ;
- 
-
-/* **************************************** DECLARACIONES **************************************** */
-declaracion: declaracionVariable
-    |   declaracionFuncion
-    ;
-
-/** Variables **/
-
-declaracionVariable: TIPO_DATO  declarador  ';' { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = agregadorDeclaradores(tipoAuxiliar); pushSimboloSinRepetir(identificadorAuxiliar, tipoAuxiliar, 0);} 
-    ;
-
-declarador: decla                   
-    | decla '=' inicializador
-    ;
-
-inicializador: expresionAsignacion
-    | '{' listaInicializadores '}'
-    | '{'listaInicializadores ',' listaInicializadores '}'
-    ;
-
-listaInicializadores: inicializador
-    | listaInicializadores ',' inicializador  
-    ;
-
-/** Funciones **/
-
-declaracionFuncion: TIPO_DATO  IDENTIFICADOR '(' listaParametros_ ')' ';'   { pushSimboloSinRepetir($<cadena>2, $<cadena>1, 1);  pushParametros($<cadena>2); }
-    | TIPO_DATO IDENTIFICADOR '(' listaParametros_ ')' sentenciaCompuesta   { pushSimboloSinRepetir($<cadena>2, $<cadena>1, 1);  pushParametros($<cadena>2); }
-    ;
-
-listaParametros: parametro         
-    | listaParametros ',' parametro 
-    ;
-
-parametro: TIPO_DATO decla { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = agregadorDeclaradores(tipoAuxiliar); pushParametro(&tablaParametros, tipoAuxiliar); } 
-    ;
-
-/** Extras **/
-
-decla: /* */
-    | declaradorDirecto
-    | puntero declaradorDirecto
-    ;
-
-puntero: '*'      { contador.punteros++; }  
-    | '*' puntero { contador.punteros++; }
-    ;
-
-declaradorDirecto: IDENTIFICADOR                        { identificadorAuxiliar = strdup($<cadena>1); }
-    | declaradorDirecto '[' expresionConstante_ ']'     { contador.dimensiones++; }
-    ;
-
-/* **************************************** SENTENCIAS **************************************** */ 
-sentencia: sentenciaExpresion
-    | sentenciaCompuesta 
-    | sentenciaSeleccion 
-    | sentenciaIteracion 
-    | sentenciaSalto   
-    | sentenciaEtiquetada     
-    ;
-
-sentenciaExpresion: expresion_s ';'
-    ;
-
-expresion_s: /* */  { printf("\nLinea %i - SENTENCIA - EXPRESION:  VACIA", yylineno);   }
-    | expresion     /*{ printf("\nLinea %i - SENTENCIA - EXPRESION", yylineno);   }*/   
-    ;
-
-sentenciaCompuesta: '{' listaDeclaraciones_ listaSentencias_ '}'    { printf("\nLinea %i - SENTENCIA - EXPRESION:  COMPUESTA", yylineno);   }
-    ;
-
-listaDeclaraciones: declaracion 
-    | listaDeclaraciones declaracion
-    ;
-
-listaSentencias: sentencia 
-    | listaSentencias sentencia
-    ;
-
-sentenciaSeleccion: IF '(' expresion ')' sentencia  { printf("\nLinea %i - SENTENCIA - SELECCION:  IF     ", yylineno);    }    
-    | IF '(' expresion ')' sentencia ELSE sentencia { printf("\nLinea %i - SENTENCIA - SELECCION:  IF/ELSE", yylineno);    } 
-    | SWITCH '(' expresion ')' sentencia            { printf("\nLinea %i - SENTENCIA - SELECCION:  SWITCH ", yylineno);    }
-    ;
-
-sentenciaEtiquetada: CASE expresionConstante ':' sentencia 
-    | DEFAULT ':' sentencia 
-    | IDENTIFICADOR ':' sentencia /*Las sentencias case y default se utilizan solo dentro de una sentencia switch.*/
-    ;
-
-sentenciaIteracion: WHILE '(' expresion ')' sentencia               { printf("\nLinea %i - SENTENCIA - ITERACION:  WHILE   ", yylineno);   } 
-    | DO sentencia WHILE '(' expresion ')' ';'                      { printf("\nLinea %i - SENTENCIA - ITERACION:  DO/WHILE", yylineno);   } 
-    | FOR '(' expresion_';' expresion_ ';' expresion_ ')' sentencia { printf("\nLinea %i - SENTENCIA - ITERACION:  FOR     ", yylineno);   }
-    ;
-
-sentenciaSalto: CONTINUE ';'    { printf("\nLinea %i - SENTENCIA - SALTO:  CONTINUE", yylineno);   }
-    | BREAK ';'                 { printf("\nLinea %i - SENTENCIA - SALTO:  BREAK   ", yylineno);   } 
-    | RETURN expresion_ ';'     { printf("\nLinea %i - SENTENCIA - SALTO:  RETURN  ", yylineno);   } 
-    | GOTO IDENTIFICADOR ';'    { printf("\nLinea %i - SENTENCIA - SALTO:  GOTO    ", yylineno);   }
-    ;
-
-
-/* **************************************** OPCIONALES **************************************** */
-// Opcionales en "Expresiones"
-listaArgumentos_: /* */
-    | listaArgumentos
-    ;
-
-// Opcionales en "Declaraciones"
-
-expresionConstante_: /* */
-    | expresionConstante
-    ;
-
-listaParametros_: /* */ 
-    | listaParametros
-    ;
-
-// Opcionales en "Sentencias"
-expresion_: /* */    
-    | expresion       
-    ;
-
-listaDeclaraciones_: /* */
-    | listaDeclaraciones 
-    ;
-
-listaSentencias_: /* */ 
-    | listaSentencias 
-    ;
-
-%%
-
-int main() {
-
-    #ifdef BISON_DEBUG
-        yydebug = 1;
-    #endif 
-    
-    yyin = fopen("./test.c", "r");
-    printf("\n/* **********...Errores y advertencias....********* */");
-
-    yyparse();
-
-    printf("\n\n/* **********....Doble declaracion.....********** */");
-    mostrarSimbolos(tablaDobleDeclaracion);
-
-    printf("\n\n/* **********.....Tabla de simbolos......********** */");
-    mostrarSimbolos(tablaSimbolos);
-
-}
