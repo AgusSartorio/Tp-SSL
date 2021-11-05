@@ -14,50 +14,71 @@
     extern int yylineno;
 
 %}
-
+/*UNION*/
 %union {
     char* cadena;
     int entero;
     float real;
 }
 
+/*--------------TOKENS--------------------*/
 %token <cadena> IDENTIFICADOR
-
-
-%token <cadena> OP_ASIGNACION                
-%token <cadena> OP_O_LOGICO                   
-%token <cadena> OP_Y_LOGICO                  
-%token <cadena> OP_O_INCLUSIVO                
-%token <cadena> OP_O_EXCLUSIVO               
-%token <cadena> OP_IGUALDAD                  
-%token <cadena> OP_RELACIONAL                
-%token <cadena> OP_DIVISION 
-%token <cadena> OP_PORCENTAJE 
-%token <cadena> OP_INCREMENTO                
-%token <cadena> SIZEOF  
-
-%token <cadena> CONSTANTE_CADENA                    
-%token <entero> CONSTANTE_DECIMAL                   
-%token <entero> CONSTANTE_OCTAL                         
-%token <entero> CONSTANTE_HEXADECIMAL               
-%token <real>   CONSTANTE_REAL                        
-%token <entero> CONSTANTE_CARACTER                   
 
 %token <cadena> TIPO_DATO 
 
+%token <cadena> STRUCT
+%token <cadena> SIZEOF  
+
+%token <entero> CTE_DECIMAL                   
+%token <entero> CTE_OCTAL                         
+%token <entero> CTE_HEXADECIMAL               
+%token <real>   CTE_REAL  
+
+%token <cadena> OP_O_LOGICO                   
+%token <cadena> OP_Y_LOGICO                  
+%token <cadena> OP_O_INCLUSIVO  
+
+%token <cadena> OP_ASIGNACION                
+              
+%token <cadena> OP_IGUALDAD
+%token <cadena> OP_DESIGUALDAD                  
+%token <cadena> OP_RELACIONAL  
+
+%token <cadena> OP_DIVISION 
+%token <cadena> OP_PORCENTAJE 
+
+%token <cadena> OP_INCREMENTO                
+%token <cadena> OP_DECREMENTO 
+
+%token <cadena> DO               
+%token <cadena> WHILE
+
 %token <cadena> IF
 %token <cadena> ELSE
+
 %token <cadena> SWITCH
-%token <cadena> WHILE
-%token <cadena> DO
-%token <cadena> FOR
 %token <cadena> CASE
 %token <cadena> DEFAULT
-%token <cadena> CONTINUE
 %token <cadena> BREAK
+%token <cadena> CONTINUE
+
+%token <cadena> FOR
+
 %token <cadena> RETURN
 
-%token <cadena> STRUCT
+%token <cadena> CTE_CADENA                                      
+%token <entero> CTE_CARACTER
+
+/*--------------TYPES--------------------*/
+%type <cadena> expresionSufijo
+%type <cadena> declaracionVariable
+%type <cadena> declarador
+%type <cadena> expresionPrimaria
+%type <cadena> constante
+
+// %type <cadena> decla
+// %type <cadena> puntero
+// adentro del decla %type <cadena> declaradorDirecto
 
 
 %% /* A continuacion las reglas gramaticales y las acciones */
@@ -72,12 +93,12 @@ line: declaracion '\n'
     ;
 
 /*me parecio mejor ponerlo asi con un caracter de corte para variar, igual discutirlo */
-caracterDeCorte: ';'
-                |'\n'
+
+caracterDeCorte: ';'  { printf("\n***Error sintactico - Linea %i: %s***", yylineno, $<cadena>1); }
+                |'\n' { printf("\n***Error sintactico - Linea %i: %s***", yylineno, $<cadena>1); }
 ;
 
-
-/* -------------------------------------------------- SENTENCIAS -------------------------------------------------- */ 
+/* -------------------------------------------------- SENTENCIAS --------------------------------------------------*/ 
 
 
 sentencia:  sentenciaExpresion      
@@ -123,6 +144,7 @@ sentenciaIteracion: WHILE '(' expresion ')' sentencia                           
 
 sentenciaEtiquetada: CASE expresionConstante ':' sentencia 
                     | DEFAULT ':' sentencia 
+                    
 /* saque esta linea donde estaba el IDENTIFICADOR porque creo q lo usa para el GOTO de la sentenciasalto pero como VOLAMOS el goto del FLEX no hace falta */ 
 ;
 
@@ -173,8 +195,8 @@ listaDeParametros:   parametro
                     | listaDeParametros ',' parametro
 ;
 
-parametro:  TIPO_DATO
-            | TIPO_DATO IDENTIFICADOR  /*esto seria el decla directo de martin */
+parametro: TIPO_DATO IDENTIFICADOR              { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = agregadorDeclaradores(tipoAuxiliar); pushParametro(&tablaParametros, tipoAuxiliar); }
+  /*esto seria el decla directo de martin */
 
 finDeDeclaracion:     ';'                                           
                     | sentenciaCompuesta   {completar}             
@@ -266,16 +288,16 @@ listaArgumentos: expresionAsignacion            { pushParametro(&tablaParametros
 
 expresionPrimaria: IDENTIFICADOR    { tablaAuxiliar = obtenerIdentificador($<cadena>1); if(tablaAuxiliar != NULL) (validacionBinaria == 0) ? (tipoAuxiliar1 = tablaAuxiliar->tipo) : (tipoAuxiliar2 = tablaAuxiliar->tipo) ; validacionBinaria = 1; }  
     | constante                     
-    | CONSTANTE_CADENA              { (validacionBinaria == 0) ? (tipoAuxiliar1 = "char*") : (tipoAuxiliar2 = "char*"); validacionBinaria = 1; }
+    | CTE_CADENA              { (validacionBinaria == 0) ? (tipoAuxiliar1 = "char*") : (tipoAuxiliar2 = "char*"); validacionBinaria = 1; }
     | '(' expresion ')'
     ;
 
 expresionConstante: expresionCondicional /* ver lo del CASE
     ; 
 
-constante: CONSTANTE_DECIMAL   { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }      
-    | CONSTANTE_OCTAL          { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }
-    | CONSTANTE_HEXADECIMAL    { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }
-    | CONSTANTE_REAL           { (validacionBinaria == 0) ? (tipoAuxiliar1 = "float") : (tipoAuxiliar2 = "float"); validacionBinaria = 1; }  
-    | CONSTANTE_CARACTER       { (validacionBinaria == 0) ? (tipoAuxiliar1 = "char" ) : (tipoAuxiliar2 = "char" ); validacionBinaria = 1; }
+constante: CTE_DECIMAL   { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }      
+    | CTE_OCTAL          { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }
+    | CTE_HEXADECIMAL    { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }
+    | CTE_REAL           { (validacionBinaria == 0) ? (tipoAuxiliar1 = "float") : (tipoAuxiliar2 = "float"); validacionBinaria = 1; }  
+    | CTE_CARACTER       { (validacionBinaria == 0) ? (tipoAuxiliar1 = "char" ) : (tipoAuxiliar2 = "char" ); validacionBinaria = 1; }
     ;
