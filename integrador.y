@@ -13,10 +13,7 @@
 
     extern int yylineno;
 
-    
-
 %}
-
 
 %union {
     char* cadena;
@@ -165,7 +162,7 @@ listaInicializadores: inicializador
 
 /*DECLARACION FUNCIONES*/
 
-declaracionFuncion: TIPO_DATO  IDENTIFICADOR parametros final  { pushSimboloSinRepetir($<cadena>2, $<cadena>1, 1);  pushParametros($<cadena>2); }
+declaracionFuncion: TIPO_DATO  IDENTIFICADOR parametros finDeDeclaracion  { pushSimboloSinRepetir($<cadena>2, $<cadena>1, 1);  pushParametros($<cadena>2); }
 ;
 
 parametros: '(' listaDeParametros ')'
@@ -179,10 +176,10 @@ listaDeParametros:   parametro
 parametro:  TIPO_DATO
             | TIPO_DATO IDENTIFICADOR  /*esto seria el decla directo de martin */
 
-final:  ';'                                           
-         | sentenciaCompuesta   {completar}             
-         | '{' error '}'        {completar}              
-         | error                {completar} 
+finDeDeclaracion:     ';'                                           
+                    | sentenciaCompuesta   {completar}             
+                    | '{' error '}'        {completar}              
+                    | error                {completar} 
 ;
 
 
@@ -215,21 +212,16 @@ expresionOInclusivo: expresionY
 
 expresionY: expresionIgualdad 
     | expresionY '&' expresionIgualdad 
-    ;
+;
 
 expresionIgualdad: expresionRelacional 
     | expresionIgualdad OP_IGUALDAD expresionRelacional 
-    ;
-
-/* -------------------HASTA ACA OKKK. LO Q SIGUE SOLO ES COPYPASTE FALTA ARREGLAR------------------------------------------- */
-
-expresionRelacional: expresionCorrimiento 
-    | expresionRelacional OP_RELACIONAL expresionCorrimiento 
+    | expresionIgualdad OP_DESIGUALDAD expresionRelacional
 ;
 
-expresionCorrimiento: expresionAditiva 
-    | expresionCorrimiento OP_CORRIMIENTO expresionAditiva 
-    ;
+expresionRelacional: expresionAditiva 
+    | expresionRelacional OP_RELACIONAL expresionAditiva 
+;
 
 expresionAditiva: expresionMultiplicativa 
     | expresionAditiva '+' expresionMultiplicativa  { numeroLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0; }
@@ -238,7 +230,8 @@ expresionAditiva: expresionMultiplicativa
 
 expresionMultiplicativa: expresionConversion 
     | expresionMultiplicativa '*' expresionConversion                       { numeroLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0; }
-    | expresionMultiplicativa OPERADOR_MULTIPLICATIVO expresionConversion   { numeroLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0; }
+    | expresionMultiplicativa OP_DIVISION expresionConversion               { numeroLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0; }
+    | expresionMultiplicativa OP_PORCENTAJE expresionConversion             { numeroLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0; }
     ;
 
 expresionConversion: expresionUnaria 
@@ -246,10 +239,11 @@ expresionConversion: expresionUnaria
     ;
 
 expresionUnaria: expresionSufijo            
-    | OPERADOR_INCREMENTO expresionUnaria
+    | OP_INCREMENTO expresionUnaria
+    | OP_DECREMENTO expresionUnaria
     | operadorUnario expresionConversion 
-    | OPERADOR_SIZEOF expresionUnaria    
-    | OPERADOR_SIZEOF '(' TIPO_DATO ')'    
+    | SIZEOF expresionUnaria    
+    | SIZEOF '(' TIPO_DATO ')'    
     ;
 
 operadorUnario:'&'
@@ -262,8 +256,8 @@ operadorUnario:'&'
 
 expresionSufijo: expresionPrimaria 
     | expresionSufijo '[' expresion ']' /* arreglo */           
-    | expresionSufijo '(' listaArgumentos_ ')' { numeroLinea = yylineno; pushSimbolo(&tablaAuxiliar, $<cadena>1, "-", 1);  tablaAuxiliar->tiposParametros = tablaParametros; validacionInvocacion(tablaAuxiliar);  tablaParametros = NULL; tablaAuxiliar = NULL; }
-    | expresionSufijo OPERADOR_INCREMENTO                       
+    | expresionSufijo '(' listaArgumentos ')'       { numeroLinea = yylineno; pushSimbolo(&tablaAuxiliar, $<cadena>1, "-", 1);  tablaAuxiliar->tiposParametros = tablaParametros; validacionInvocacion(tablaAuxiliar);  tablaParametros = NULL; tablaAuxiliar = NULL; }
+    | expresionSufijo OP_INCREMENTO                       
     ;
 
 listaArgumentos: expresionAsignacion            { pushParametro(&tablaParametros, $<cadena>1); } 
@@ -276,7 +270,7 @@ expresionPrimaria: IDENTIFICADOR    { tablaAuxiliar = obtenerIdentificador($<cad
     | '(' expresion ')'
     ;
 
-expresionConstante: expresionCondicional
+expresionConstante: expresionCondicional /* ver lo del CASE
     ; 
 
 constante: CONSTANTE_DECIMAL   { (validacionBinaria == 0) ? (tipoAuxiliar1 = "int"  ) : (tipoAuxiliar2 = "int"  ); validacionBinaria = 1; }      

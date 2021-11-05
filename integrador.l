@@ -9,7 +9,7 @@
 %option noyywrap
 
 
-CAR_SIMPLES (","|"?"|":"|"("|")"|"["|"]"|"="|"{"|"}"|";"|"*"|"&"|"+"|"-"|"~"|"!")
+
 STRUCT ("struct")
 
 OP_DE_ASIGNACION ("*="|"/="|"%="|"+="|"*=") 
@@ -35,6 +35,7 @@ CONSTANTE_REAL (({DECIMAL_CON_CERO}+)"."{DECIMAL_CON_CERO}*)
 /* Revisar por secuencia de escapes para el codigo SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 
 %%
+","|"?"|":"|"("|")"|"["|"]"|"="|"{"|"}"|";"|"*"|"&"|"+"|"-"|"~"|"!"
 
 "\n" { return '\n'; }
 " "|"\t"
