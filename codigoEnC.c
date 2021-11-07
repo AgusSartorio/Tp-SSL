@@ -1,1 +1,1 @@
-int a;
+char a[10] = "\"hola\"";

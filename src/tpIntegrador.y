@@ -1,5 +1,5 @@
+
 %{
-    #include <ctype.h>
     #include <stdio.h>
     #include <string.h>
     #include <stdlib.h>
@@ -77,7 +77,6 @@
 /*--------------TYPES--------------------*/
 %type <cadena> expresionSufijo
 %type <cadena> declaracionVariable
-%type <cadena> puntero
 %type <cadena> declarador
 %type <cadena> unaDeclaracion
 %type <cadena> expresionPrimaria
@@ -98,7 +97,7 @@ line: declaracion '\n'
     | sentencia '\n'        
     | error '\n' { printf("\nError sintactico en la linea %i: %s", yylineno, $<cadena>1);}
     | error ';' { printf("\nError sintactico en la linea %i: %s", yylineno, $<cadena>1); }
-    ;
+;
 
 /* -------------------------------------------------- EXPRESIONES -------------------------------------------------- */
 
@@ -143,7 +142,7 @@ expresionRelacional: expresionAditiva
 expresionAditiva: expresionMultiplicativa 
     | expresionAditiva '+' expresionMultiplicativa  { numeroDeLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0;}
     | expresionAditiva '-' expresionMultiplicativa  { numeroDeLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0;}
-    ;
+;
 
 expresionMultiplicativa: expresionConversion 
     | expresionMultiplicativa '*' expresionConversion                       { numeroDeLinea = yylineno; validacionTipos(tipoAuxiliar1, tipoAuxiliar2); validacionBinaria = 0;}
@@ -167,7 +166,6 @@ operadorUnario:'&'
     |'*'
     |'+'
     |'-'
-    |'~'
     |'!'
     ;
 
@@ -209,7 +207,8 @@ declaracionVariable: TIPO_DATO  declarador  ';' { tipoAuxiliar = strdup($<cadena
     ;
 
 declarador: unaDeclaracion                  
-    | unaDeclaracion'=' inicializador
+    | unaDeclaracion '=' inicializador
+    | unaDeclaracion ',' declarador
     ;
 
 inicializador: expresionAsignacion
@@ -232,15 +231,10 @@ listaDeParametros:   parametro
                     | listaDeParametros ',' parametro
 ;
 
-parametro: TIPO_DATO IDENTIFICADOR  unaDeclaracion { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = insertarDeclaradores(tipoAuxiliar); agregarParametro(&tablaDeParametros, tipoAuxiliar); }
+parametro: TIPO_DATO unaDeclaracion { tipoAuxiliar = strdup($<cadena>1); tipoAuxiliar = insertarDeclaradores(tipoAuxiliar); agregarParametro(&tablaDeParametros, tipoAuxiliar); }
 ;
 
-unaDeclaracion:/* */
-    | puntero declaradorDirecto
-    ;
-
-puntero: '*'      { contador.punteros++; }  
-    | '*' puntero { contador.punteros++; }
+unaDeclaracion: declaradorDirecto
     ;
 
 declaradorDirecto: IDENTIFICADOR                        { identificadorAuxiliar = strdup($<cadena>1); }
@@ -255,13 +249,14 @@ sentencia:  sentenciaExpresion
           | sentenciaSalto         
 ;
 
-sentenciaExpresion: /* vacio */ ';'                                         { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION: VACIA", yylineno);   }
-                    | expresion ';'                                         
-;
+sentenciaExpresion: expresion_s ';'
+    ;
 
+expresion_s: /* */  { printf("\nLinea %i - SENTENCIA - EXPRESION:  VACIA", yylineno);} 
+    | expresion
+    ;
 
-/*aca en vez de poner listaDeDeclaraciones  y listaDeSentencias dentor de las llaves como hizo martin, se lo derive dentro del interiorSentenciaCompuesta */
-sentenciaCompuesta:       '{' listaDeclaraciones_ listaSentencias_'}'                { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION: COMPUESTA", yylineno); }
+sentenciaCompuesta:       '{' listaDeclaraciones_ listaSentencias_'}'            { printf("\nLinea %i Se encontro una SENTENCIA-EXPRESION: COMPUESTA", yylineno); }
 ;
 
 listaDeDeclaraciones:   declaracion
@@ -279,14 +274,12 @@ sentenciaSeleccion: IF '(' expresion ')' sentencia                  { printf("\n
 
 sentenciaIteracion: WHILE '(' expresion ')' sentencia                               { printf("\nLinea %i - SENTENCIA - ITERACION:  WHILE   ", yylineno);   } 
                     | DO sentencia WHILE '(' expresion ')' ';'                      { printf("\nLinea %i Se encontro una SENTENCIA-ITERACION:  DO/WHILE", yylineno);   } 
-                    | FOR '(' expresion_';' expresion_ ';' expresion_ ')' sentencia { printf("\nLinea %i Se encontro una SENTENCIA-ITERACION:  FOR     ", yylineno);   }
+                    | FOR '(' expresion_';' expresion_ ';' expresion_ ')' sentencia { printf("\nLinea %i Se encontro una SENTENCIA-ITERACION:  FOR     ", yylineno);   } /*no funciona el ciclo for*/
 ;
 
 sentenciaEtiquetada: CASE expresionConstante ':' sentencia 
                     | DEFAULT ':' sentencia 
 ;
-/* saque esta linea donde estaba el IDENTIFICADOR porque creo q lo usa para el GOTO de la sentenciasalto pero como VOLAMOS el goto del FLEX no hace falta */ 
-
 
 sentenciaSalto: CONTINUE ';'    { printf("\nLinea %i Se encontro la SENTENCIA-SALTO:  CONTINUE", yylineno);   }
     | BREAK ';'                 { printf("\nLinea %i Se encontro la SENTENCIA-SALTO:  BREAK   ", yylineno);   } 
@@ -330,17 +323,22 @@ int main(){
     #endif 
     
     yyin = fopen("./codigoEnC.c", "r");
-    printf("\nTipos de errores: ");
+    
+    printf("\nTipos de errores y advertencias de casteo:");
+    yyparse();
+    printf("\n------------------------------------");
 
-    printf("\nValidacines semanticas:");
+    printf("\nValidaciones semanticas:");
+    
     printf("\nDoble declaraciones: ");
     imprimirSimbolos(tablaDeDobleDeclaracion);
-
+    printf("\n-----------------------------------");
+    
     printf("\nTabla de simbolos:");
     imprimirSimbolos(tablaDeSimbolos);
 
     
-    yyparse();
+ 
 
 
 }

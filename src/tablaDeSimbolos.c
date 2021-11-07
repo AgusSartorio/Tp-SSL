@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+//control z
 /*Estructuras de la tabla de simbolos*/
-
 struct parametroDeUnaFuncion{
     char* tipoDelParametro;
     struct parametroDeUnaFuncion* siguiente;
@@ -19,8 +18,7 @@ struct tablaDeSimbolos{
 
 struct contadorDeclaradores {
     int dimensiones;
-    int punteros;
-} contador = {0,0}; //para inicializar en 0 al contador
+} contador = {0}; //para inicializar en 0 al contador
 
 
 int numeroDeLinea = 0;
@@ -67,7 +65,7 @@ void agregarSimbolo(struct tablaDeSimbolos** cabeza,char* nuevoIdentificador,cha
 }
 
 char* insertarDeclarador(char *declarador,char *tipoDeDato, int cantidad){
-    char *temp = (char *) malloc(strlen(tipoDeDato) + strlen(declarador) * cantidad + 1);
+    char *temp = (char *) malloc(1 + strlen(tipoDeDato) + strlen(declarador) * cantidad);
 
     strcpy(temp,tipoDeDato);
 
@@ -100,8 +98,8 @@ void sacarDeclarador(char declarador, char *tipoDeDato){
 
 //-----------Doble declaracion de variables-----------------------
 
-int declarado(char* unIdentificador){
-    struct tablaDeSimbolos *temp = (struct tablaDeSimbolos*) malloc(sizeof(struct tablaDeSimbolos));
+int declarado(char* unIdentificador){// Funvcion que permite saber si una variable  o funcion esta declarada
+    struct tablaDeSimbolos * temp = (struct tablaDeSimbolos*) malloc(sizeof(struct tablaDeSimbolos));
 
     temp = tablaDeSimbolos;
 
@@ -117,7 +115,18 @@ int declarado(char* unIdentificador){
 }
 
 int dobleDeclaracion(char* unIdentificador){
-   return declarado(unIdentificador);
+    struct tablaDeSimbolos *temp = (struct tablaDeSimbolos*) malloc(sizeof(struct tablaDeSimbolos));
+    temp = tablaDeDobleDeclaracion;
+
+    while(temp != NULL){
+        if(!strcmp(unIdentificador, temp->identificador)){
+            return 1;
+        }else{
+            temp = temp->siguiente;
+        }
+    }
+
+    return 0; // devuelve 1 si ya esta declarado sino 0
 }
 
 //-----------------Devolver identificadores y parametros-----------------
@@ -132,7 +141,13 @@ struct tablaDeSimbolos* devolverIdentificador(char* identificador){
 }
 
 struct parametroDeUnaFuncion* devolverParametros(char* identificador){
-    return devolverIdentificador(identificador)->tipoDeParametros;
+    struct tablaDeSimbolos* temp = tablaDeSimbolos;
+
+    while(temp != NULL && strcmp(identificador, temp->identificador) != 0){//Mientras sean distintos
+        temp = temp->siguiente;
+    }
+
+    return temp->tipoDeParametros;
 }
 //-----------------------------------------
 
@@ -245,6 +260,7 @@ void imprimirSimbolos(struct tablaDeSimbolos* listaDeSimbolos){
         case 1:
 
             printf("\nIdentificador de la funcion: %s con Tipo: %s",listaDeSimbolos->identificador,listaDeSimbolos->tipo);
+            printf("\nRetorna un valor de tipo: %s",listaDeSimbolos->tipo);
             printf("\nCantidad de parametros: %d", cantidadDeParametros(&listaDeSimbolos->tipoDeParametros));
             imprimirParametros(listaDeSimbolos->tipoDeParametros);
 
@@ -254,14 +270,11 @@ void imprimirSimbolos(struct tablaDeSimbolos* listaDeSimbolos){
 
 // CONTROL DE OPERACION BINARIA
 int validacionTipos(char* unTipo, char* otroTipo) {    
-        if(strcmp(unTipo, otroTipo) && strstr(unTipo,"void") == NULL && strstr(otroTipo, "void") == NULL) { // Tipos distintos, no void
-            printf("\nEn linea %i se convierte de %s a %s\n", numeroDeLinea, otroTipo, unTipo);
-        return 0;
-    } else if(strstr(unTipo, "void") != NULL || strstr(otroTipo, "void") != NULL) { // Algun void
-        printf("\nEn linea %i no es posible declarar una variable de tipo void\n", numeroDeLinea);
         
-        return 1;
-    }
+        if(strcmp(unTipo, otroTipo)) { 
+            printf("\nEn linea %i se convierte de %s a %s\n", numeroDeLinea, unTipo,otroTipo);
+            return 0;
+        } 
         
     return 0;
     

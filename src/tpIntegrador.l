@@ -28,7 +28,7 @@ OP_Y_LOGICO "&&"
 OP_O_INCLUSIVO "|"
 
 /*Operadores de asignacion*/
-OP_ASIGNACION ("*="|"/="|"%="|"+="|"*=") 
+OP_ASIGNACION ("="|"+="|"-="|"*="|"/=") 
 
 /*Operadores de comparacion*/
 OP_IGUALDAD ("==")
@@ -55,7 +55,7 @@ SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 "\n" { return '\n'; }
 " "|"\t"
 
-","|"?"|":"|"("|")"|"["|"]"|"="|"{"|"}"|";"|"*"|"&"|"+"|"-"|"~"|"!" { return yytext[0]; }
+","|"?"|":"|"("|")"|"["|"]"|"="|"{"|"}"|";"|"*"|"&"|"+"|"-"|"!" { return yytext[0]; }
 
 "do"          { return DO;        }
 "while"       { return WHILE;     }
@@ -72,13 +72,14 @@ SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 "for"         { return FOR;       }
 
 "return"      { return RETURN;    }
-
+                                                                                            
 {DECIMAL_SIN_CERO}{DECIMAL_CON_CERO}*{SUFIJO_ENTERO}?                                           { yylval.entero =   atoi(yytext);               return CTE_DECIMAL;       }
 0{OCTAL}*{SUFIJO_ENTERO}?                                                                       { yylval.entero =   atoi(yytext);               return CTE_OCTAL;         }
 0[xX]{HEXADECIMAL}+{SUFIJO_ENTERO}?                                                             { yylval.entero =   atoi(yytext);               return CTE_HEXADECIMAL;   }
 {CTE_REAL}{SUFIJO_REAL}?                                                                        { yylval.real =     strtol(yytext, NULL, 0);    return CTE_REAL;          }
-
-{TIPO_DATO}               { yylval.cadena = strdup(yytext); return TIPO_DATO; }
+                                                                                           
+{TIPO_DATO}                                                                                     { yylval.cadena = strdup(yytext); return TIPO_DATO; }
+                       
 
 {SIZEOF}                  { return SIZEOF;          }           
 
@@ -99,10 +100,10 @@ SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 {OP_DECREMENTO}           { return OP_DECREMENTO;   }                  
 
 
-[a-zA-Z_][a-zA-Z0-9_]*                                                                          { yylval.cadena = strdup(yytext); return IDENTIFICADOR;}
-"/*"([^*]|(\*+[^*/]))*"*"+"/"                                                                   { yylval.cadena =   strdup(yytext);             return CTE_CADENA;}
+[a-zA-Z_][a-zA-Z0-9_]*                                                                          { yylval.cadena =   strdup(yytext);             return IDENTIFICADOR;}
+\"(([^\"]|\\\")*[^\\])?\"                                                                       { yylval.cadena =   strdup(yytext);             return CTE_CADENA;}
 \'([^\\\']|\\{SECUENCIA_ESCAPE_SIMPLE})                                                         { yylval.entero =   atoi(yytext);               return CTE_CARACTER;}
 
-.                                                                                               {printf("\nEl caracter %c no fue reconocido.", yytext[0]);}
+.                                                                                               {printf("\nError Lexico: El caracter %c no fue reconocido.", yytext[0]);}
 
 %%
