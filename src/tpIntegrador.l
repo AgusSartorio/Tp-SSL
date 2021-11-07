@@ -52,6 +52,9 @@ SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 
 
 %%
+
+[a-zA-Z_][a-zA-Z0-9_]*                                      { yylval.cadena =   strdup(yytext);             return IDENTIFICADOR;}
+
 "\n" { return '\n'; }
 " "|"\t"
 
@@ -100,10 +103,9 @@ SECUENCIA_ESCAPE_SIMPLE (a|b|f|n|r|t|v|\'|\"|\?|\\)
 {OP_DECREMENTO}           { return OP_DECREMENTO;   }                  
 
 
-[a-zA-Z_][a-zA-Z0-9_]*                                                                          { yylval.cadena =   strdup(yytext);             return IDENTIFICADOR;}
-\"(([^\"]|\\\")*[^\\])?\"                                                                       { yylval.cadena =   strdup(yytext);             return CTE_CADENA;}
-\'([^\\\']|\\{SECUENCIA_ESCAPE_SIMPLE})                                                         { yylval.entero =   atoi(yytext);               return CTE_CARACTER;}
+\"(([^\"]|\\\")*[^\\])?\"                                   { yylval.cadena =   strdup(yytext);             return CTE_CADENA;}
+\'([^\\\']|\\{SECUENCIA_ESCAPE_SIMPLE})                     { yylval.entero =   atoi(yytext);               return CTE_CARACTER;}
 
-.                                                                                               {printf("\nError Lexico: El caracter %c no fue reconocido.", yytext[0]);}
+.                                                           {printf("\nError Lexico: El caracter %c no fue reconocido.", yytext[0]);}
 
 %%
